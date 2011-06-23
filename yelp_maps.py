@@ -4,6 +4,7 @@
 
 import errno
 import json
+import re
 import sys
 import urllib
 import xml.dom.minidom
@@ -32,14 +33,9 @@ class KmlPlacemarks(object):
     self.doc.appendChild(style)
 
   @staticmethod
-  def _format_address(listing, delim=', '):
-    address2 = '%(city)s, %(state)s %(zip)s' % listing
-    return delim.join([listing['address1'], address2])
-
-  @staticmethod
   def _format_description(listing):
     digest = '%(rating).1f from %(review_count)d reviews' % listing
-    address = KmlPlacemarks._format_address(listing, '<br>')
+    address = '<br/>'.join(listing['formatted_address_brief'])
     phone = listing.get('phone', None)
     link = '<a href="http://www.yelp.com/biz/%s">Yelp</a>' % listing['id']
     comments = listing.get('comments', None)
@@ -89,16 +85,9 @@ class Overrides(object):
 
 
 def ExtractBizList(url):
-  BIZ_LIST_SENTINEL = 'Yelp.biz_list = '
-  biz_list = None
-  for line in urllib.urlopen(url):
-    line = line.strip()
-    if line.startswith(BIZ_LIST_SENTINEL):
-      assert line.endswith(';')
-      biz_list = line[len(BIZ_LIST_SENTINEL):-1]
-      break
-  assert biz_list
-  return json.loads(biz_list)
+  pattern = r'bookmarkOnLoad", (.*?)\);</script>'
+  jsobject = re.search(pattern, urllib.urlopen(url).read()).group(1)
+  return json.loads(jsobject)['businessList']
 
 
 if __name__ == '__main__':
@@ -121,8 +110,15 @@ if __name__ == '__main__':
   overrides = Overrides('overrides.cfg.py')
   kml = KmlPlacemarks()
   for category in CATEGORIES:
-    for listing in ExtractBizList('%s&category=%s' % (URL_BASE, category)):
-      overrides.merge(listing)
-      if listing.get('category_restrict', category) == category:
-        kml.add(listing, category)
+    start = 0
+    biz_list = ExtractBizList('%s&category=%s' % (URL_BASE, category))
+    while biz_list:
+      for listing in biz_list:
+        overrides.merge(listing)
+        if listing.get('category_restrict', category) == category:
+          kml.add(listing, category)
+      start += 50
+      assert start < 200, 'pagination infinite loop?'
+      url = '%s&category=%s&start=%d' % (URL_BASE, category, start)
+      biz_list = ExtractBizList(url)
   print kml
