@@ -1,0 +1,9 @@
+https://developer.foursquare.com/overview/auth.html
+
+To get access token (oauth_token):
+https://foursquare.com/oauth2/authenticate?client_id=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&response_type=token&redirect_uri=http://localhost
+
+To use:
+https://api.foursquare.com/v2/venues/search?near=10012&query=Rubirosa&intent=match&address=235%2BMulberry%2BSt&city=New%2BYork&state=NY&zip=10012&phone=(212)%2B965-0500&oauth_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&v=20140404
+
+Any way to support notes?
