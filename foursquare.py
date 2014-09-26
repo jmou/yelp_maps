@@ -5,11 +5,27 @@ import urllib
 import urllib2
 
 
+def geocode(venue):
+    address = venue.get('address')
+    if address is None:
+        address = venue['zip_code']
+    else:
+        address = '{}, {}, {}'.format(address, venue['city'], venue['state'])
+    url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + urllib.quote_plus(address)
+    print 'Geocoding', url
+    response = json.load(urllib2.urlopen(url))
+    return response['results'][0]['geometry']['location']
+
+
 def match_venue(venue, oauth_token):
+    ll = geocode(venue)
+    name = venue['name']
+    if name == 'Vatan Indian Vegetarian':
+        name = 'Vatan'
     query = {
         'intent': 'match',
-        'near': venue['zip_code'],
-        'query': venue['name'],
+        'll': '{},{}'.format(ll['lat'], ll['lng']),
+        'query': name,
         'address': venue.get('address'),
         'city': venue['city'],
         'state': venue['state'],
@@ -21,6 +37,7 @@ def match_venue(venue, oauth_token):
     query = dict((k, v.encode('utf-8')) for k, v in query.iteritems() if v)
 
     url = 'https://api.foursquare.com/v2/venues/search?' + urllib.urlencode(query)
+    print 'Fetching', url
     return json.load(urllib2.urlopen(url))
 
 
